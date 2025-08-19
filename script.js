@@ -16,6 +16,9 @@ let cameraX = 0;
 const playerImg = new Image();
 playerImg.src = 'https://raw.githubusercontent.com/AGabtni/Kenney-s-World/master/imgs/Players/Variable%20sizes/Blue/alienBlue_stand.png';
 
+const npcImg = new Image();
+npcImg.src = 'https://raw.githubusercontent.com/AGabtni/Kenney-s-World/master/imgs/Players/Variable%20sizes/Green/alienGreen_stand.png';
+
 const coinImg = new Image();
 coinImg.src = 'https://raw.githubusercontent.com/AGabtni/Kenney-s-World/master/imgs/Items/coinGold.png';
 
@@ -35,8 +38,18 @@ const player = {
   onGround: false
 };
 
+const npc = {
+  x: 0,
+  y: 290,
+  width: 40,
+  height: 40,
+  vy: 0,
+  onGround: false
+};
+
 const gravity = 0.5;
 const speed = 3;
+const npcSpeed = 2.5;
 const jumpPower = -10;
 const jumpHeight = (jumpPower * jumpPower) / (2 * gravity);
 const groundTileHeight = 70;
@@ -68,6 +81,16 @@ function isCoinTooClose(x, y) {
 function generateLevel() {
   obstacles.length = 0;
   coins.length = 0;
+
+  // Reset player and NPC positions
+  player.x = 50;
+  player.y = ground - player.height;
+  player.vy = 0;
+  player.onGround = false;
+  npc.x = Math.max(0, player.x - 120);
+  npc.y = ground - npc.height;
+  npc.vy = 0;
+  npc.onGround = false;
 
   // Generate obstacles spread across the level
   for (let i = 0; i < numObstacles; i++) {
@@ -137,6 +160,35 @@ function update() {
   });
   player.x = nextX;
 
+  // NPC horizontal movement chasing the player
+  let npcNextX = npc.x;
+  if (npc.x < player.x - 40) npcNextX += npcSpeed;
+  else if (npc.x > player.x - 40) npcNextX -= npcSpeed;
+
+  obstacles.forEach((ob) => {
+    if (
+      npcNextX < ob.x + ob.width &&
+      npcNextX + npc.width > ob.x &&
+      npc.y < ob.y + ob.height &&
+      npc.y + npc.height > ob.y
+    ) {
+      if (npc.x < ob.x) npcNextX = ob.x - npc.width;
+      else npcNextX = ob.x + ob.width;
+      if (npc.onGround) {
+        npc.vy = jumpPower;
+        npc.onGround = false;
+      }
+    } else if (
+      npc.onGround &&
+      npc.x + npc.width < ob.x &&
+      npc.x + npc.width + npcSpeed >= ob.x
+    ) {
+      npc.vy = jumpPower;
+      npc.onGround = false;
+    }
+  });
+  npc.x = npcNextX;
+
   // Jump
   if (keys['ArrowUp'] && player.onGround) {
     player.vy = jumpPower;
@@ -175,9 +227,42 @@ function update() {
 
   player.y = nextY;
 
+  // NPC gravity and vertical collisions
+  npc.vy += gravity;
+  let npcNextY = npc.y + npc.vy;
+  npc.onGround = false;
+
+  obstacles.forEach((ob) => {
+    if (
+      npc.x < ob.x + ob.width &&
+      npc.x + npc.width > ob.x &&
+      npcNextY < ob.y + ob.height &&
+      npcNextY + npc.height > ob.y
+    ) {
+      if (npc.vy > 0) {
+        npcNextY = ob.y - npc.height;
+        npc.vy = 0;
+        npc.onGround = true;
+      } else if (npc.vy < 0) {
+        npcNextY = ob.y + ob.height;
+        npc.vy = 0;
+      }
+    }
+  });
+
+  if (npcNextY + npc.height >= ground) {
+    npcNextY = ground - npc.height;
+    npc.vy = 0;
+    npc.onGround = true;
+  }
+
+  npc.y = npcNextY;
+
   // Clamp to canvas
   if (player.x < 0) player.x = 0;
   if (player.x + player.width > levelWidth) player.x = levelWidth - player.width;
+  if (npc.x < 0) npc.x = 0;
+  if (npc.x + npc.width > levelWidth) npc.x = levelWidth - npc.width;
 
   // Coin collision
   coins.forEach((coin) => {
@@ -224,11 +309,12 @@ function draw() {
     ctx.drawImage(groundImg, ob.x, ob.y, ob.width, ob.height);
   });
 
-  // Draw finish flag
-  ctx.drawImage(finishImg, finish.x, finish.y, finish.width, finish.height);
+    // Draw finish flag
+    ctx.drawImage(finishImg, finish.x, finish.y, finish.width, finish.height);
 
-  // Draw player
-  ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
+    // Draw NPC then player
+    ctx.drawImage(npcImg, npc.x, npc.y, npc.width, npc.height);
+    ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
 
   // Draw coins
   coins.forEach((coin) => {
@@ -257,11 +343,13 @@ function gameLoop() {
 
 // Start when images are loaded
 playerImg.onload = () => {
-  coinImg.onload = () => {
-    groundImg.onload = () => {
-      finishImg.onload = () => {
-        generateLevel();
-        gameLoop();
+  npcImg.onload = () => {
+    coinImg.onload = () => {
+      groundImg.onload = () => {
+        finishImg.onload = () => {
+          generateLevel();
+          gameLoop();
+        };
       };
     };
   };
