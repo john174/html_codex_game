@@ -39,15 +39,38 @@ const ground = canvas.height - groundTileHeight;
 const keys = {};
 let coinsCollected = 0;
 
-// Create 30 coins at random positions
+// Simple platforms/obstacles to jump over or onto
+const obstacles = [
+  { x: 300, y: ground - 40, width: 100, height: 40 },
+  { x: 700, y: ground - 80, width: 80, height: 80 },
+  { x: 1100, y: ground - 40, width: 40, height: 40 },
+  { x: 1400, y: ground - 120, width: 100, height: 20 },
+  { x: 1700, y: ground - 60, width: 120, height: 60 }
+];
+
+// Place 30 coins, some atop the obstacles
 const coins = [];
-for (let i = 0; i < 30; i++) {
+for (let i = 0; i < 20; i++) {
   coins.push({
-    x: Math.random() * (levelWidth - 32),
-    y: Math.random() * 200 + 100,
+    x: 100 + i * 80,
+    y: ground - 80,
     collected: false
   });
 }
+
+const extraCoins = [
+  { x: obstacles[0].x + obstacles[0].width / 2 - 16, y: obstacles[0].y - 40 },
+  { x: obstacles[1].x + obstacles[1].width / 2 - 16, y: obstacles[1].y - 40 },
+  { x: obstacles[1].x + obstacles[1].width / 2 - 16, y: obstacles[1].y - 80 },
+  { x: obstacles[2].x + obstacles[2].width / 2 - 16, y: obstacles[2].y - 40 },
+  { x: obstacles[3].x + obstacles[3].width / 2 - 16, y: obstacles[3].y - 40 },
+  { x: obstacles[3].x + obstacles[3].width / 2 - 16, y: obstacles[3].y - 80 },
+  { x: obstacles[4].x + obstacles[4].width / 2 - 16, y: obstacles[4].y - 40 },
+  { x: obstacles[4].x + obstacles[4].width / 2 - 16, y: obstacles[4].y - 80 },
+  { x: 1800, y: 150 },
+  { x: 1900, y: 150 }
+];
+extraCoins.forEach((c) => coins.push({ ...c, collected: false }));
 
 window.addEventListener('keydown', (e) => {
   keys[e.key] = true;
@@ -59,8 +82,23 @@ window.addEventListener('keyup', (e) => {
 });
 
 function update() {
-  if (keys['ArrowLeft']) player.x -= speed;
-  if (keys['ArrowRight']) player.x += speed;
+  let nextX = player.x;
+  if (keys['ArrowLeft']) nextX -= speed;
+  if (keys['ArrowRight']) nextX += speed;
+
+  // Horizontal collisions with obstacles
+  obstacles.forEach((ob) => {
+    if (
+      nextX < ob.x + ob.width &&
+      nextX + player.width > ob.x &&
+      player.y < ob.y + ob.height &&
+      player.y + player.height > ob.y
+    ) {
+      if (keys['ArrowLeft']) nextX = ob.x + ob.width;
+      else if (keys['ArrowRight']) nextX = ob.x - player.width;
+    }
+  });
+  player.x = nextX;
 
   // Jump
   if (keys['ArrowUp'] && player.onGround) {
@@ -70,13 +108,35 @@ function update() {
 
   // Gravity
   player.vy += gravity;
-  player.y += player.vy;
+  let nextY = player.y + player.vy;
+  player.onGround = false;
 
-  if (player.y + player.height >= ground) {
-    player.y = ground - player.height;
+  // Vertical collisions with obstacles
+  obstacles.forEach((ob) => {
+    if (
+      player.x < ob.x + ob.width &&
+      player.x + player.width > ob.x &&
+      nextY < ob.y + ob.height &&
+      nextY + player.height > ob.y
+    ) {
+      if (player.vy > 0) {
+        nextY = ob.y - player.height;
+        player.vy = 0;
+        player.onGround = true;
+      } else if (player.vy < 0) {
+        nextY = ob.y + ob.height;
+        player.vy = 0;
+      }
+    }
+  });
+
+  if (nextY + player.height >= ground) {
+    nextY = ground - player.height;
     player.vy = 0;
     player.onGround = true;
   }
+
+  player.y = nextY;
 
   // Clamp to canvas
   if (player.x < 0) player.x = 0;
@@ -84,11 +144,13 @@ function update() {
 
   // Coin collision
   coins.forEach((coin) => {
-    if (!coin.collected &&
-        player.x < coin.x + 32 &&
-        player.x + player.width > coin.x &&
-        player.y < coin.y + 32 &&
-        player.y + player.height > coin.y) {
+    if (
+      !coin.collected &&
+      player.x < coin.x + 32 &&
+      player.x + player.width > coin.x &&
+      player.y < coin.y + 32 &&
+      player.y + player.height > coin.y
+    ) {
       coin.collected = true;
       coinsCollected++;
     }
@@ -108,6 +170,11 @@ function draw() {
   for (let x = 0; x < levelWidth; x += 70) {
     ctx.drawImage(groundImg, x, ground, 70, groundTileHeight);
   }
+
+  // Draw obstacles/platforms
+  obstacles.forEach((ob) => {
+    ctx.drawImage(groundImg, ob.x, ob.y, ob.width, ob.height);
+  });
 
   // Draw player
   ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
