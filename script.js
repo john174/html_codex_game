@@ -42,35 +42,42 @@ let coinsCollected = 0;
 // Simple platforms/obstacles to jump over or onto
 const obstacles = [
   { x: 300, y: ground - 40, width: 100, height: 40 },
-  { x: 700, y: ground - 80, width: 80, height: 80 },
+  { x: 700, y: ground - 60, width: 80, height: 60 },
   { x: 1100, y: ground - 40, width: 40, height: 40 },
-  { x: 1400, y: ground - 120, width: 100, height: 20 },
+  { x: 1400, y: ground - 90, width: 100, height: 20 },
   { x: 1700, y: ground - 60, width: 120, height: 60 }
 ];
 
-// Place 30 coins, some atop the obstacles
+// Place 30 coins while avoiding overlap with obstacles
 const coins = [];
-for (let i = 0; i < 20; i++) {
+
+// Ensure each obstacle has a coin hovering above it
+obstacles.forEach((ob) => {
   coins.push({
-    x: 100 + i * 80,
-    y: ground - 80,
+    x: ob.x + ob.width / 2 - 16,
+    y: ob.y - 40,
     collected: false
   });
-}
+});
 
-const extraCoins = [
-  { x: obstacles[0].x + obstacles[0].width / 2 - 16, y: obstacles[0].y - 40 },
-  { x: obstacles[1].x + obstacles[1].width / 2 - 16, y: obstacles[1].y - 40 },
-  { x: obstacles[1].x + obstacles[1].width / 2 - 16, y: obstacles[1].y - 80 },
-  { x: obstacles[2].x + obstacles[2].width / 2 - 16, y: obstacles[2].y - 40 },
-  { x: obstacles[3].x + obstacles[3].width / 2 - 16, y: obstacles[3].y - 40 },
-  { x: obstacles[3].x + obstacles[3].width / 2 - 16, y: obstacles[3].y - 80 },
-  { x: obstacles[4].x + obstacles[4].width / 2 - 16, y: obstacles[4].y - 40 },
-  { x: obstacles[4].x + obstacles[4].width / 2 - 16, y: obstacles[4].y - 80 },
-  { x: 1800, y: 150 },
-  { x: 1900, y: 150 }
-];
-extraCoins.forEach((c) => coins.push({ ...c, collected: false }));
+// Randomly distribute remaining coins, skipping spots inside textures
+while (coins.length < 30) {
+  const coin = {
+    x: Math.random() * (levelWidth - 32),
+    y: Math.random() * (ground - 100) + 20,
+    collected: false
+  };
+
+  const collides = obstacles.some(
+    (ob) =>
+      coin.x < ob.x + ob.width &&
+      coin.x + 32 > ob.x &&
+      coin.y < ob.y + ob.height &&
+      coin.y + 32 > ob.y
+  );
+
+  if (!collides) coins.push(coin);
+}
 
 window.addEventListener('keydown', (e) => {
   keys[e.key] = true;
