@@ -1,0 +1,11 @@
+body {
+    margin: 0;
+    background: #7ec0ee; /* sky blue */
+    overflow: hidden;
+}
+
+#gameCanvas {
+    display: block;
+    margin: 0 auto;
+    background: #8b4513; /* ground color fallback */
+}
