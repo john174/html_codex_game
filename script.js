@@ -3,12 +3,13 @@
 // Player: https://raw.githubusercontent.com/AGabtni/Kenney-s-World/master/imgs/Players/Variable%20sizes/Blue/alienBlue_stand.png
 // Coin: https://raw.githubusercontent.com/AGabtni/Kenney-s-World/master/imgs/Items/coinGold.png
 // Ground tile: https://raw.githubusercontent.com/AGabtni/Kenney-s-World/master/imgs/Ground/Grass/grassMid.png
+// Finish flag: https://raw.githubusercontent.com/AGabtni/Kenney-s-World/master/imgs/Items/flagGreen1.png
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 // Level settings
-const levelWidth = 2000;
+const levelWidth = 3000;
 let cameraX = 0;
 
 // Load images
@@ -20,6 +21,9 @@ coinImg.src = 'https://raw.githubusercontent.com/AGabtni/Kenney-s-World/master/i
 
 const groundImg = new Image();
 groundImg.src = 'https://raw.githubusercontent.com/AGabtni/Kenney-s-World/master/imgs/Ground/Grass/grassMid.png';
+
+const finishImg = new Image();
+finishImg.src = 'https://raw.githubusercontent.com/AGabtni/Kenney-s-World/master/imgs/Items/flagGreen1.png';
 
 // Game state
 const player = {
@@ -40,48 +44,67 @@ const ground = canvas.height - groundTileHeight;
 const keys = {};
 let coinsCollected = 0;
 
-// Simple platforms/obstacles to jump over or onto
-const obstacles = [
-  { x: 300, y: ground - 40, width: 100, height: 40 },
-  { x: 700, y: ground - 60, width: 80, height: 60 },
-  { x: 1100, y: ground - 40, width: 40, height: 40 },
-  { x: 1400, y: ground - 90, width: 100, height: 20 },
-  { x: 1700, y: ground - 60, width: 120, height: 60 }
-];
-
-// Place 30 coins while avoiding overlap with obstacles
+const obstacles = [];
 const coins = [];
+let finish;
+
+const numCoins = 30;
+const numObstacles = 8;
+const coinSize = 32;
+const minCoinSpacing = coinSize * 2.5; // prevent coins from clustering
 
 // Coins should remain within jump reach
-const minCoinY = ground - player.height - jumpHeight - 32;
+const minCoinY = ground - player.height - jumpHeight - coinSize;
 const maxCoinY = ground - 80;
 
-// Ensure each obstacle has a coin hovering above it
-obstacles.forEach((ob) => {
-  coins.push({
-    x: ob.x + ob.width / 2 - 16,
-    y: Math.max(minCoinY, ob.y - 40),
-    collected: false
-  });
-});
+function randomRange(min, max) {
+  return Math.random() * (max - min) + min;
+}
 
-// Randomly distribute remaining coins, skipping spots inside textures
-while (coins.length < 30) {
-  const coin = {
-    x: Math.random() * (levelWidth - 32),
-    y: Math.random() * (maxCoinY - minCoinY) + minCoinY,
-    collected: false
-  };
+function isCoinTooClose(x, y) {
+  return coins.some((c) => Math.hypot(c.x - x, c.y - y) < minCoinSpacing);
+}
 
-  const collides = obstacles.some(
-    (ob) =>
-      coin.x < ob.x + ob.width &&
-      coin.x + 32 > ob.x &&
-      coin.y < ob.y + ob.height &&
-      coin.y + 32 > ob.y
-  );
+function generateLevel() {
+  obstacles.length = 0;
+  coins.length = 0;
 
-  if (!collides) coins.push(coin);
+  // Generate obstacles spread across the level
+  for (let i = 0; i < numObstacles; i++) {
+    const segmentStart = (i * levelWidth) / numObstacles + 100;
+    const segmentEnd = ((i + 1) * levelWidth) / numObstacles - 100;
+    const width = randomRange(60, 120);
+    const height = randomRange(20, 60);
+    const x = randomRange(segmentStart, segmentEnd - width);
+    const y = ground - height;
+    obstacles.push({ x, y, width, height });
+
+    // Place a coin above the obstacle if room allows
+    const coinX = x + width / 2 - coinSize / 2;
+    const coinY = Math.max(minCoinY, y - 40);
+    if (!isCoinTooClose(coinX, coinY)) {
+      coins.push({ x: coinX, y: coinY, collected: false });
+    }
+  }
+
+  // Random coins throughout the level
+  while (coins.length < numCoins) {
+    const coinX = randomRange(50, levelWidth - 50);
+    const coinY = randomRange(minCoinY, maxCoinY);
+    const collides = obstacles.some(
+      (ob) =>
+        coinX < ob.x + ob.width &&
+        coinX + coinSize > ob.x &&
+        coinY < ob.y + ob.height &&
+        coinY + coinSize > ob.y
+    );
+    if (!collides && !isCoinTooClose(coinX, coinY)) {
+      coins.push({ x: coinX, y: coinY, collected: false });
+    }
+  }
+
+  // Finish flag near the end
+  finish = { x: levelWidth - 80, y: ground - 80, width: 40, height: 80 };
 }
 
 window.addEventListener('keydown', (e) => {
@@ -92,6 +115,8 @@ window.addEventListener('keyup', (e) => {
   keys[e.key] = false;
   e.preventDefault();
 });
+
+let gameWon = false;
 
 function update() {
   let nextX = player.x;
@@ -168,6 +193,17 @@ function update() {
     }
   });
 
+  // Finish collision
+  if (
+    coinsCollected >= numCoins &&
+    player.x < finish.x + finish.width &&
+    player.x + player.width > finish.x &&
+    player.y < finish.y + finish.height &&
+    player.y + player.height > finish.y
+  ) {
+    gameWon = true;
+  }
+
   // Update camera position
   cameraX = Math.max(0, Math.min(player.x - canvas.width / 2, levelWidth - canvas.width));
 }
@@ -188,6 +224,9 @@ function draw() {
     ctx.drawImage(groundImg, ob.x, ob.y, ob.width, ob.height);
   });
 
+  // Draw finish flag
+  ctx.drawImage(finishImg, finish.x, finish.y, finish.width, finish.height);
+
   // Draw player
   ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
 
@@ -205,8 +244,8 @@ function draw() {
   ctx.font = '20px sans-serif';
   ctx.fillText(`Coins: ${coinsCollected}/30`, 10, 20);
 
-  if (coinsCollected >= 30) {
-    ctx.fillText('You collected all the coins!', 250, 200);
+  if (gameWon) {
+    ctx.fillText('You reached the finish!', 250, 200);
   }
 }
 
@@ -220,7 +259,10 @@ function gameLoop() {
 playerImg.onload = () => {
   coinImg.onload = () => {
     groundImg.onload = () => {
-      gameLoop();
+      finishImg.onload = () => {
+        generateLevel();
+        gameLoop();
+      };
     };
   };
 };
