@@ -34,6 +34,7 @@ const player = {
 const gravity = 0.5;
 const speed = 3;
 const jumpPower = -10;
+const jumpHeight = (jumpPower * jumpPower) / (2 * gravity);
 const groundTileHeight = 70;
 const ground = canvas.height - groundTileHeight;
 const keys = {};
@@ -51,11 +52,15 @@ const obstacles = [
 // Place 30 coins while avoiding overlap with obstacles
 const coins = [];
 
+// Coins should remain within jump reach
+const minCoinY = ground - player.height - jumpHeight - 32;
+const maxCoinY = ground - 80;
+
 // Ensure each obstacle has a coin hovering above it
 obstacles.forEach((ob) => {
   coins.push({
     x: ob.x + ob.width / 2 - 16,
-    y: ob.y - 40,
+    y: Math.max(minCoinY, ob.y - 40),
     collected: false
   });
 });
@@ -64,7 +69,7 @@ obstacles.forEach((ob) => {
 while (coins.length < 30) {
   const coin = {
     x: Math.random() * (levelWidth - 32),
-    y: Math.random() * (ground - 100) + 20,
+    y: Math.random() * (maxCoinY - minCoinY) + minCoinY,
     collected: false
   };
 
