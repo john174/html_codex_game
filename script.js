@@ -2,6 +2,7 @@
 // Sprites from the open source Kenney assets:
 // Player: https://raw.githubusercontent.com/AGabtni/Kenney-s-World/master/imgs/Players/Variable%20sizes/Blue/alienBlue_stand.png
 // Coin: https://raw.githubusercontent.com/AGabtni/Kenney-s-World/master/imgs/Items/coinGold.png
+// Ground tile: https://raw.githubusercontent.com/AGabtni/Kenney-s-World/master/imgs/Ground/Grass/grassMid.png
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -12,19 +13,18 @@ let cameraX = 0;
 
 // Load images
 const playerImg = new Image();
-// Mario-like sprite from Kenney's open source Platformer Kit
-playerImg.src = 'https://raw.githubusercontent.com/kenneyNL/platformer-kit/master/sprites/player_red.png';
+playerImg.src = 'https://raw.githubusercontent.com/AGabtni/Kenney-s-World/master/imgs/Players/Variable%20sizes/Blue/alienBlue_stand.png';
 
 const coinImg = new Image();
 coinImg.src = 'https://raw.githubusercontent.com/AGabtni/Kenney-s-World/master/imgs/Items/coinGold.png';
 
 const groundImg = new Image();
-groundImg.src = 'https://raw.githubusercontent.com/kenneyNL/platformer-kit/master/tiles/grassMid.png';
+groundImg.src = 'https://raw.githubusercontent.com/AGabtni/Kenney-s-World/master/imgs/Ground/Grass/grassMid.png';
 
 // Game state
 const player = {
   x: 50,
-  y: 300,
+  y: 290,
   width: 40,
   height: 40,
   vy: 0,
@@ -34,7 +34,8 @@ const player = {
 const gravity = 0.5;
 const speed = 3;
 const jumpPower = -10;
-const ground = 350;
+const groundTileHeight = 70;
+const ground = canvas.height - groundTileHeight;
 const keys = {};
 let coinsCollected = 0;
 
@@ -48,8 +49,14 @@ for (let i = 0; i < 30; i++) {
   });
 }
 
-window.addEventListener('keydown', (e) => keys[e.key] = true);
-window.addEventListener('keyup', (e) => keys[e.key] = false);
+window.addEventListener('keydown', (e) => {
+  keys[e.key] = true;
+  e.preventDefault();
+});
+window.addEventListener('keyup', (e) => {
+  keys[e.key] = false;
+  e.preventDefault();
+});
 
 function update() {
   if (keys['ArrowLeft']) player.x -= speed;
@@ -99,7 +106,7 @@ function draw() {
 
   // Draw ground using tiles
   for (let x = 0; x < levelWidth; x += 70) {
-    ctx.drawImage(groundImg, x, ground, 70, 50);
+    ctx.drawImage(groundImg, x, ground, 70, groundTileHeight);
   }
 
   // Draw player

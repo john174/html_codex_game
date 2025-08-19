@@ -7,7 +7,7 @@ body {
 #gameCanvas {
     display: block;
     margin: 0 auto;
-    background: #8b4513; /* ground color fallback */
+    background: #7ec0ee; /* sky color inside canvas */
 }
 
 #credits {
