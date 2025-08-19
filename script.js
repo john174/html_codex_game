@@ -6,12 +6,20 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+// Level settings
+const levelWidth = 2000;
+let cameraX = 0;
+
 // Load images
 const playerImg = new Image();
-playerImg.src = 'https://raw.githubusercontent.com/AGabtni/Kenney-s-World/master/imgs/Players/Variable%20sizes/Blue/alienBlue_stand.png';
+// Mario-like sprite from Kenney's open source Platformer Kit
+playerImg.src = 'https://raw.githubusercontent.com/kenneyNL/platformer-kit/master/sprites/player_red.png';
 
 const coinImg = new Image();
 coinImg.src = 'https://raw.githubusercontent.com/AGabtni/Kenney-s-World/master/imgs/Items/coinGold.png';
+
+const groundImg = new Image();
+groundImg.src = 'https://raw.githubusercontent.com/kenneyNL/platformer-kit/master/tiles/grassMid.png';
 
 // Game state
 const player = {
@@ -34,7 +42,7 @@ let coinsCollected = 0;
 const coins = [];
 for (let i = 0; i < 30; i++) {
   coins.push({
-    x: Math.random() * (canvas.width - 32),
+    x: Math.random() * (levelWidth - 32),
     y: Math.random() * 200 + 100,
     collected: false
   });
@@ -65,7 +73,7 @@ function update() {
 
   // Clamp to canvas
   if (player.x < 0) player.x = 0;
-  if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+  if (player.x + player.width > levelWidth) player.x = levelWidth - player.width;
 
   // Coin collision
   coins.forEach((coin) => {
@@ -78,14 +86,21 @@ function update() {
       coinsCollected++;
     }
   });
+
+  // Update camera position
+  cameraX = Math.max(0, Math.min(player.x - canvas.width / 2, levelWidth - canvas.width));
 }
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Draw ground
-  ctx.fillStyle = '#228B22';
-  ctx.fillRect(0, ground, canvas.width, 50);
+  ctx.save();
+  ctx.translate(-cameraX, 0);
+
+  // Draw ground using tiles
+  for (let x = 0; x < levelWidth; x += 70) {
+    ctx.drawImage(groundImg, x, ground, 70, 50);
+  }
 
   // Draw player
   ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
@@ -96,6 +111,8 @@ function draw() {
       ctx.drawImage(coinImg, coin.x, coin.y, 32, 32);
     }
   });
+
+  ctx.restore();
 
   // Draw HUD
   ctx.fillStyle = '#fff';
@@ -116,6 +133,8 @@ function gameLoop() {
 // Start when images are loaded
 playerImg.onload = () => {
   coinImg.onload = () => {
-    gameLoop();
+    groundImg.onload = () => {
+      gameLoop();
+    };
   };
 };

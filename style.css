@@ -9,3 +9,9 @@ body {
     margin: 0 auto;
     background: #8b4513; /* ground color fallback */
 }
+
+#credits {
+    text-align: center;
+    color: #fff;
+    font-family: sans-serif;
+}
