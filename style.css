@@ -1,0 +1,17 @@
+body {
+    margin: 0;
+    background: #7ec0ee; /* sky blue */
+    overflow: hidden;
+}
+
+#gameCanvas {
+    display: block;
+    margin: 0 auto;
+    background: #7ec0ee; /* sky color inside canvas */
+}
+
+#credits {
+    text-align: center;
+    color: #fff;
+    font-family: sans-serif;
+}
